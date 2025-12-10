@@ -29,6 +29,7 @@ async function run() {
         const db = client.db(process.env.DB_NAME);
         const usersCollection = db.collection('users');
         const mealsCollection = db.collection('meals');
+        const reviewCollection = db.collection('review');
 
         // ✅user releted Apis here
 
@@ -70,8 +71,8 @@ async function run() {
         // get 6 data
         app.get('/populer-meals', async (req, res) => {
             try {
-                const users = await mealsCollection.find().limit(6).toArray();
-                res.json(users);
+                const meals = await mealsCollection.find().limit(6).toArray();
+                res.json(meals);
             } catch (err) {
                 res.status(500).json({ message: 'Failed to fetch data', error: err });
             }
@@ -80,8 +81,8 @@ async function run() {
         // fet all meals
         app.get('/meals', async (req, res) => {
             try {
-                const users = await mealsCollection.find().toArray();
-                res.json(users);
+                const meals = await mealsCollection.find().toArray();
+                res.json(meals);
             } catch (err) {
                 res.status(500).json({ message: 'Failed to fetch data', error: err });
             }
@@ -96,6 +97,25 @@ async function run() {
                 res.json(meal);
             } catch (err) {
                 res.status(500).json({ message: 'Error finding meal', error: err });
+            }
+        });
+
+
+        // ✅ Review releted apis here
+
+        // get review by filter
+        app.get('/review/:id', async (req, res) => {
+            try {
+                const foodId = req.params.id;
+                const reviews = await reviewCollection.find({ foodId }).toArray();
+
+                if (reviews.length === 0) {
+                    return res.status(404).json({ message: 'No reviews found' });
+                }
+
+                res.json(reviews);
+            } catch (err) {
+                res.status(500).json({ message: 'Error finding reviews', error: err });
             }
         });
 
