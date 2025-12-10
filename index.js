@@ -65,6 +65,19 @@ async function run() {
         });
 
 
+        // ✅ Meals Releted apis here
+
+        // get all
+        app.get('/meals', async (req, res) => {
+            try {
+                const users = await usersCollection.find().toArray();
+                res.json(users);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to fetch users', error: err });
+            }
+        });
+
+
 
 
     }
