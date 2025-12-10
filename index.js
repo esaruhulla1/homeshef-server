@@ -28,6 +28,7 @@ async function run() {
 
         const db = client.db(process.env.DB_NAME);
         const usersCollection = db.collection('users');
+        const mealsCollection = db.collection('meals');
 
         // ✅user releted Apis here
 
@@ -66,16 +67,38 @@ async function run() {
 
 
         // ✅ Meals Releted apis here
-
-        // get all
-        app.get('/meals', async (req, res) => {
+        // get 6 data
+        app.get('/populer-meals', async (req, res) => {
             try {
-                const users = await usersCollection.find().toArray();
+                const users = await mealsCollection.find().limit(6).toArray();
                 res.json(users);
             } catch (err) {
-                res.status(500).json({ message: 'Failed to fetch users', error: err });
+                res.status(500).json({ message: 'Failed to fetch data', error: err });
             }
         });
+
+        // fet all meals
+        app.get('/meals', async (req, res) => {
+            try {
+                const users = await mealsCollection.find().toArray();
+                res.json(users);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to fetch data', error: err });
+            }
+        });
+
+        // get one meals
+        app.get('/meals/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const meal = await mealsCollection.findOne({ _id: new ObjectId(id) });
+                if (!meal) return res.status(404).json({ message: 'Meal not found' });
+                res.json(meal);
+            } catch (err) {
+                res.status(500).json({ message: 'Error finding meal', error: err });
+            }
+        });
+
 
 
 
