@@ -69,6 +69,18 @@ async function run() {
             }
         });
 
+        // GET user by email
+        app.get('/users/email/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const user = await usersCollection.findOne({ email });
+                if (!user) return res.status(404).json({ message: 'User not found' });
+                res.json(user);
+            } catch (err) {
+                res.status(500).json({ message: 'Error finding user', error: err });
+            }
+        });
+
 
         // ✅ Meals Releted apis here
         // get 6 data
@@ -179,6 +191,17 @@ async function run() {
                 res.status(201).json(result);
             } catch (err) {
                 res.status(500).json({ message: 'Failed to create data', error: err });
+            }
+        });
+
+        // Get request by user email
+        app.get('/request/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const requests = await requestCollection.find({ userEmail: email }).toArray();
+                res.json(requests);
+            } catch (err) {
+                res.status(500).json({ message: 'Error fetching requests', error: err });
             }
         });
 
