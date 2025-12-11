@@ -29,7 +29,9 @@ async function run() {
         const db = client.db(process.env.DB_NAME);
         const usersCollection = db.collection('users');
         const mealsCollection = db.collection('meals');
-        const reviewCollection = db.collection('review');
+        const reviewsCollection = db.collection('reviews');
+        const favoritesCollection = db.collection('favorites');
+        const orderCollection = db.collection('orders');
 
         // ✅user releted Apis here
 
@@ -107,17 +109,66 @@ async function run() {
         app.get('/review/:id', async (req, res) => {
             try {
                 const foodId = req.params.id;
-                const reviews = await reviewCollection.find({ foodId }).toArray();
-
+                const reviews = await reviewsCollection.find({ foodId }).limit(10).toArray();
                 if (reviews.length === 0) {
                     return res.status(404).json({ message: 'No reviews found' });
                 }
-
                 res.json(reviews);
             } catch (err) {
                 res.status(500).json({ message: 'Error finding reviews', error: err });
             }
         });
+
+        // post review
+        app.post('/review', async (req, res) => {
+            try {
+                const newUser = req.body;
+                const result = await reviewsCollection.insertOne(newUser);
+                res.status(201).json(result);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to create data', error: err });
+            }
+        });
+
+
+        // ✅ favorite food releted apis here
+
+        // ADD TO FAVORITE with Duplicate Check
+        app.post('/favorite', async (req, res) => {
+            try {
+                const { userEmail, mealId } = req.body;
+
+                // 1️⃣ Check if already in favorites
+                const alreadyExists = await favoritesCollection.findOne({ userEmail, mealId });
+
+                if (alreadyExists) {
+                    return res.status(409).json({ message: "Meal already in favorites" });
+                }
+
+                // 2️⃣ Insert new favorite
+                const result = await favoritesCollection.insertOne(req.body);
+                res.status(201).json({
+                    message: "Added to favorites successfully",
+                    insertedId: result.insertedId
+                });
+
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to add favorite', error: err });
+            }
+        });
+
+
+        // Orders releted apis here
+        app.post('/orders', async (req, res) => {
+            try {
+                const newUser = req.body;
+                const result = await orderCollection.insertOne(newUser);
+                res.status(201).json(result);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to create data', error: err });
+            }
+        });
+
 
 
 
