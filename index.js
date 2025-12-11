@@ -32,6 +32,7 @@ async function run() {
         const reviewsCollection = db.collection('reviews');
         const favoritesCollection = db.collection('favorites');
         const orderCollection = db.collection('orders');
+        const requestCollection = db.collection('request');
 
         // ✅user releted Apis here
 
@@ -158,11 +159,23 @@ async function run() {
         });
 
 
-        // Orders releted apis here
+        //✅ Orders releted apis here
         app.post('/orders', async (req, res) => {
             try {
                 const newUser = req.body;
                 const result = await orderCollection.insertOne(newUser);
+                res.status(201).json(result);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to create data', error: err });
+            }
+        });
+
+
+        //✅ Request releted apis here
+        app.post('/request', async (req, res) => {
+            try {
+                const newUser = req.body;
+                const result = await requestCollection.insertOne(newUser);
                 res.status(201).json(result);
             } catch (err) {
                 res.status(500).json({ message: 'Failed to create data', error: err });
