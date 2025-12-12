@@ -143,6 +143,44 @@ async function run() {
             }
         });
 
+        // get review by email
+        app.get('/my-reviews/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const reviews = await reviewsCollection.find({ reviewerEmail: email }).toArray();
+                res.json(reviews);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to fetch reviews', error: err });
+            }
+        });
+
+        // delete Review
+        app.delete('/review/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await reviewsCollection.deleteOne({ _id: new ObjectId(id) });
+                res.json(result);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to delete review', error: err });
+            }
+        });
+
+        // update review
+        app.put('/review/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const updated = req.body;
+                const result = await reviewsCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: updated }
+                );
+                res.json(result);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to update review', error: err });
+            }
+        });
+
+
 
         // ✅ favorite food releted apis here
 
