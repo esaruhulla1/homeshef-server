@@ -209,6 +209,30 @@ async function run() {
         });
 
 
+        // Get favorites by user email
+        app.get('/favorites/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const favorites = await favoritesCollection.find({ userEmail: email }).toArray();
+                res.json(favorites);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to fetch favorites', error: err });
+            }
+        });
+
+        // Delete favorite by ID
+        app.delete('/favorite/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await favoritesCollection.deleteOne({ _id: new ObjectId(id) });
+                res.json(result);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to delete favorite', error: err });
+            }
+        });
+
+
+
         //✅ Orders releted apis here
         app.post('/orders', async (req, res) => {
             try {
