@@ -4,6 +4,7 @@ const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT
+const stripe = require('stripe')(process.env.STRIPE_SECRET);
 
 // ✅ Middleware
 app.use(cors());
@@ -33,6 +34,8 @@ async function run() {
         const favoritesCollection = db.collection('favorites');
         const orderCollection = db.collection('orders');
         const requestCollection = db.collection('request');
+        const paymentCollection = db.collection("payments");
+
 
         // ✅user releted Apis here
 
@@ -243,6 +246,95 @@ async function run() {
                 res.status(500).json({ message: 'Failed to create data', error: err });
             }
         });
+
+        // Get orders by user email
+        app.get('/orders/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const orders = await orderCollection.find({ userEmail: email }).toArray();
+                res.json(orders);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to fetch orders', error: err });
+            }
+        });
+
+        // ======================
+        //   STRIPE PAYMENT API
+        // ======================
+
+        app.post("/create-payment", async (req, res) => {
+            try {
+                const { orderId, price, mealName, userEmail } = req.body;
+
+                const session = await stripe.checkout.sessions.create({
+                    payment_method_types: ["card"],
+                    line_items: [
+                        {
+                            price_data: {
+                                currency: "usd",
+                                product_data: { name: mealName },
+                                unit_amount: price * 100, // Convert to cents
+                            },
+                            quantity: 1,
+                        },
+                    ],
+                    mode: "payment",
+                    success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
+                    cancel_url: `${process.env.SITE_DOMAIN}/dashboard/my-order`,
+                    metadata: {
+                        orderId,
+                        userEmail
+                    }
+                });
+
+                res.json({ url: session.url });
+
+            } catch (error) {
+                console.log(error);
+                res.status(500).json({ message: "Stripe Error", error });
+            }
+        });
+
+
+        // ================================
+        // VERIFY PAYMENT AND UPDATE ORDER
+        // ================================
+        app.post("/payment-success", async (req, res) => {
+            try {
+                const { sessionId, orderId } = req.body;
+
+                // 1) Verify payment from Stripe
+                const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+                if (session.payment_status !== "paid") {
+                    return res.status(400).json({ message: "Payment not verified" });
+                }
+
+                // 2) Save payment history
+                const paymentInfo = {
+                    orderId,
+                    amount: session.amount_total / 100,
+                    transactionId: session.payment_intent,
+                    email: session.metadata.userEmail,
+                    date: new Date()
+                };
+
+                await paymentCollection.insertOne(paymentInfo);
+
+                // 3) Update order payment status
+                await orderCollection.updateOne(
+                    { _id: new ObjectId(orderId) },
+                    { $set: { paymentStatus: "paid" } }
+                );
+
+                res.json({ message: "Payment verified", paymentInfo });
+
+            } catch (error) {
+                console.log(error);
+                res.status(500).json({ error });
+            }
+        });
+
 
 
         //✅ Request releted apis here
