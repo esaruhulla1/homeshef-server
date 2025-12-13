@@ -118,6 +118,24 @@ async function run() {
             }
         });
 
+        // ✅ CREATE MEAL
+        app.post('/meals', async (req, res) => {
+            try {
+                const meal = {
+                    ...req.body,
+                    rating: 0,
+                    createdAt: new Date()
+                };
+
+                const result = await mealsCollection.insertOne(meal);
+                res.status(201).json(result);
+
+            } catch (error) {
+                res.status(500).json({ message: "Failed to create meal", error });
+            }
+        });
+
+
 
         // ✅ Review releted apis here
 
@@ -298,7 +316,6 @@ async function run() {
 
         // ================================
         // VERIFY PAYMENT AND UPDATE ORDER
-        // ================================
         app.post("/payment-success", async (req, res) => {
             try {
                 const { sessionId, orderId } = req.body;
@@ -310,18 +327,34 @@ async function run() {
                     return res.status(400).json({ message: "Payment not verified" });
                 }
 
-                // 2) Save payment history
+                const transactionId = session.payment_intent;
+                const email = session.metadata.userEmail;
+
+                // 2) Duplicate Check (Very Important)
+                const alreadyPaid = await paymentCollection.findOne({
+                    orderId,
+                    transactionId
+                });
+
+                if (alreadyPaid) {
+                    return res.json({
+                        message: "Payment already recorded",
+                        paymentInfo: alreadyPaid
+                    });
+                }
+
+                // 3) Save payment history (Only once)
                 const paymentInfo = {
                     orderId,
                     amount: session.amount_total / 100,
-                    transactionId: session.payment_intent,
-                    email: session.metadata.userEmail,
+                    transactionId,
+                    email,
                     date: new Date()
                 };
 
                 await paymentCollection.insertOne(paymentInfo);
 
-                // 3) Update order payment status
+                // 4) Update order payment status (Only once)
                 await orderCollection.updateOne(
                     { _id: new ObjectId(orderId) },
                     { $set: { paymentStatus: "paid" } }
@@ -334,6 +367,7 @@ async function run() {
                 res.status(500).json({ error });
             }
         });
+
 
 
 
