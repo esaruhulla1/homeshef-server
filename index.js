@@ -135,6 +135,47 @@ async function run() {
             }
         });
 
+        //  GET MY MEALS (by user email)
+        app.get('/my-meals/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const meals = await mealsCollection.find({ userEmail: email }).toArray();
+                res.json(meals);
+            } catch (error) {
+                res.status(500).json({ message: "Failed to fetch meals", error });
+            }
+        });
+
+        // DELETE MEAL
+        app.delete('/meals/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await mealsCollection.deleteOne({ _id: new ObjectId(id) });
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ message: "Failed to delete meal", error });
+            }
+        });
+
+        //  UPDATE MEAL
+        app.put('/meals/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const updatedMeal = req.body;
+
+                const result = await mealsCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: updatedMeal }
+                );
+
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ message: "Failed to update meal", error });
+            }
+        });
+
+
+
 
 
         // ✅ Review releted apis here
