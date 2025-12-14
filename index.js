@@ -84,6 +84,50 @@ async function run() {
             }
         });
 
+        // MAKE USER FRAUD
+        app.patch('/users/fraud/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+
+                const result = await usersCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    {
+                        $set: {
+                            status: "fraud"
+                        }
+                    }
+                );
+
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ message: "Failed to mark user as fraud", error });
+            }
+        });
+
+
+        // REMOVE FRAUD (BACK TO USER)
+        app.patch('/users/remove-fraud/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+
+                const result = await usersCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    {
+                        $set: {
+                            status: "active",
+                            role: "user"
+                        }
+                    }
+                );
+
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ message: "Failed to remove fraud", error });
+            }
+        });
+
+
+
 
         // ✅ Meals Releted apis here
         // get 6 data
