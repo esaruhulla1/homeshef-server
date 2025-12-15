@@ -327,6 +327,18 @@ async function run() {
                 res.status(500).json({ message: 'Failed to update review', error: err });
             }
         });
+        // Get all reviews
+        app.get('/reviews', async (req, res) => {
+            try {
+                const reviews = await reviewsCollection.find().toArray();
+                res.json(reviews);
+            } catch (err) {
+                res.status(500).json({ message: 'Failed to fetch reviews', error: err });
+            }
+        });
+
+
+
 
 
 
@@ -402,6 +414,38 @@ async function run() {
                 res.status(500).json({ message: 'Failed to fetch orders', error: err });
             }
         });
+
+        // GET ORDERS BY CHEF ID
+        app.get('/orders/chef/:chefId', async (req, res) => {
+            try {
+                const chefId = req.params.chefId;
+
+                const orders = await orderCollection.find({ chefId }).sort({ orderTime: -1 }).toArray();
+                res.json(orders);
+
+            } catch (error) {
+                res.status(500).json({ message: "Failed to fetch chef orders", error });
+            }
+        });
+
+        // UPDATE ORDER STATUS
+        app.patch('/orders/status/:id', async (req, res) => {
+            try {
+                const orderId = req.params.id;
+                const { status } = req.body;
+
+                const result = await orderCollection.updateOne(
+                    { _id: new ObjectId(orderId) },
+                    { $set: { orderStatus: status } }
+                );
+
+                res.json(result);
+
+            } catch (error) {
+                res.status(500).json({ message: "Failed to update order status", error });
+            }
+        });
+
 
         // ======================
         //   STRIPE PAYMENT API
@@ -549,6 +593,48 @@ async function run() {
         });
 
 
+        // ✅ PLATFORM STATISTICS API (ADMIN)
+        app.get('/admin/platform-stats', async (req, res) => {
+            try {
+                // 1️⃣ Total payment amount
+                const paymentResult = await paymentCollection.aggregate([
+                    {
+                        $group: {
+                            _id: null,
+                            totalAmount: { $sum: "$amount" }
+                        }
+                    }
+                ]).toArray();
+
+                const totalPaymentAmount = paymentResult[0]?.totalAmount || 0;
+
+                // 2️⃣ Total users
+                const totalUsers = await usersCollection.estimatedDocumentCount();
+
+                // 3️⃣ Orders delivered
+                const deliveredOrders = await orderCollection.countDocuments({
+                    orderStatus: "delivered"
+                });
+
+                // 4️⃣ Orders pending
+                const pendingOrders = await orderCollection.countDocuments({
+                    orderStatus: { $ne: "delivered" }
+                });
+
+                res.json({
+                    totalPaymentAmount,
+                    totalUsers,
+                    deliveredOrders,
+                    pendingOrders
+                });
+
+            } catch (error) {
+                res.status(500).json({
+                    message: "Failed to load platform statistics",
+                    error
+                });
+            }
+        });
 
 
 
