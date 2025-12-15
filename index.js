@@ -127,6 +127,48 @@ async function run() {
         });
 
 
+        // ACCEPT REQUEST
+        app.patch('/request/accept/:id', async (req, res) => {
+            try {
+                const requestId = req.params.id;
+                const { userEmail, requestType } = req.body;
+
+                // generate chefId if chef
+                let updateUserDoc = {};
+
+                if (requestType === 'chef') {
+                    const chefId = `chef-${Math.floor(1000 + Math.random() * 9000)}`;
+                    updateUserDoc = {
+                        role: 'chef',
+                        chefId
+                    };
+                }
+
+                if (requestType === 'admin') {
+                    updateUserDoc = { role: 'admin' };
+                }
+
+                // 1️⃣ Update user role
+                await usersCollection.updateOne(
+                    { email: userEmail },
+                    { $set: updateUserDoc }
+                );
+
+                // 2️⃣ Update request status
+                const result = await requestCollection.updateOne(
+                    { _id: new ObjectId(requestId) },
+                    { $set: { requestStatus: 'approved' } }
+                );
+
+                res.json(result);
+
+            } catch (error) {
+                res.status(500).json({ message: "Failed to accept request", error });
+            }
+        });
+
+
+
 
 
         // ✅ Meals Releted apis here
@@ -478,6 +520,33 @@ async function run() {
             }
         });
 
+
+        // GET ALL REQUESTS 
+        app.get('/requests', async (req, res) => {
+            try {
+                const result = await requestCollection.find().sort({ requestTime: -1 }).toArray();
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ message: "Failed to fetch requests", error });
+            }
+        });
+
+        // REJECT REQUEST
+        app.patch('/request/reject/:id', async (req, res) => {
+            try {
+                const requestId = req.params.id;
+
+                const result = await requestCollection.updateOne(
+                    { _id: new ObjectId(requestId) },
+                    { $set: { requestStatus: 'rejected' } }
+                );
+
+                res.json(result);
+
+            } catch (error) {
+                res.status(500).json({ message: "Failed to reject request", error });
+            }
+        });
 
 
 
