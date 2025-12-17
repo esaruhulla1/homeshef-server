@@ -6,9 +6,46 @@ const app = express();
 const port = process.env.PORT
 const stripe = require('stripe')(process.env.STRIPE_SECRET);
 
+const admin = require("firebase-admin");
+const serviceAccount = require("./firebase-admin.json");
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+
+
 // ✅ Middleware
 app.use(cors());
 app.use(express.json());
+
+
+const verifyFirebaseToken = async (req, res, next) => {
+    try {
+        // 1️⃣ Get token from header
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "Unauthorized access" });
+        }
+
+        const token = authHeader.split(" ")[1];
+
+        // 2️⃣ Verify token
+        const decodedUser = await admin.auth().verifyIdToken(token);
+
+        // 3️⃣ Attach decoded user
+        req.user = decodedUser;
+
+        next();
+
+    } catch (error) {
+        console.error("Firebase Token Error:", error);
+        return res.status(403).json({ message: "Forbidden access" });
+    }
+};
+
+
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.4u6lkgk.mongodb.net/?appName=Cluster0`;
 
@@ -175,7 +212,7 @@ async function run() {
         // get 6 data
         app.get('/populer-meals', async (req, res) => {
             try {
-                const meals = await mealsCollection.find().limit(6).toArray();
+                const meals = await mealsCollection.find().limit(8).toArray();
                 res.json(meals);
             } catch (err) {
                 res.status(500).json({ message: 'Failed to fetch data', error: err });
@@ -205,7 +242,7 @@ async function run() {
         });
 
         // ✅ CREATE MEAL
-        app.post('/meals', async (req, res) => {
+        app.post('/meals', verifyFirebaseToken, async (req, res) => {
             try {
                 const meal = {
                     ...req.body,
@@ -233,7 +270,7 @@ async function run() {
         });
 
         // DELETE MEAL
-        app.delete('/meals/:id', async (req, res) => {
+        app.delete('/meals/:id', verifyFirebaseToken, async (req, res) => {
             try {
                 const id = req.params.id;
                 const result = await mealsCollection.deleteOne({ _id: new ObjectId(id) });
@@ -244,7 +281,7 @@ async function run() {
         });
 
         //  UPDATE MEAL
-        app.put('/meals/:id', async (req, res) => {
+        app.put('/meals/:id', verifyFirebaseToken, async (req, res) => {
             try {
                 const id = req.params.id;
                 const updatedMeal = req.body;
@@ -429,7 +466,7 @@ async function run() {
         });
 
         // UPDATE ORDER STATUS
-        app.patch('/orders/status/:id', async (req, res) => {
+        app.patch('/orders/status/:id', verifyFirebaseToken, async (req, res) => {
             try {
                 const orderId = req.params.id;
                 const { status } = req.body;
@@ -576,7 +613,7 @@ async function run() {
         });
 
         // REJECT REQUEST
-        app.patch('/request/reject/:id', async (req, res) => {
+        app.patch('/request/reject/:id', verifyFirebaseToken, async (req, res) => {
             try {
                 const requestId = req.params.id;
 
@@ -594,7 +631,7 @@ async function run() {
 
 
         // ✅ PLATFORM STATISTICS API (ADMIN)
-        app.get('/admin/platform-stats', async (req, res) => {
+        app.get('/admin/platform-stats', verifyFirebaseToken, async (req, res) => {
             try {
                 // 1️⃣ Total payment amount
                 const paymentResult = await paymentCollection.aggregate([
