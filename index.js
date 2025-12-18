@@ -209,10 +209,10 @@ async function run() {
 
 
         // ✅ Meals Releted apis here
-        // get 6 data
+        // get 10 data
         app.get('/populer-meals', async (req, res) => {
             try {
-                const meals = await mealsCollection.find().limit(8).toArray();
+                const meals = await mealsCollection.find().limit(6).toArray();
                 res.json(meals);
             } catch (err) {
                 res.status(500).json({ message: 'Failed to fetch data', error: err });
@@ -505,8 +505,8 @@ async function run() {
                         },
                     ],
                     mode: "payment",
-                    success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
-                    cancel_url: `${process.env.SITE_DOMAIN}/dashboard/my-order`,
+                    success_url: `${process.env.SITE_DOMAIN}/payment-success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
+                    cancel_url: `${process.env.SITE_DOMAIN}/my-order`,
                     metadata: {
                         orderId,
                         userEmail
