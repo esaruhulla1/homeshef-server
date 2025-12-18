@@ -7,7 +7,13 @@ const port = process.env.PORT
 const stripe = require('stripe')(process.env.STRIPE_SECRET);
 
 const admin = require("firebase-admin");
-const serviceAccount = require("./firebase-admin.json");
+// const serviceAccount = require("./firebase-admin.json");
+
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString("utf8");
+const serviceAccount = JSON.parse(decoded);
+
+
+
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -61,8 +67,8 @@ async function run() {
     try {
         await client.connect();
 
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // await client.db("admin").command({ ping: 1 });
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         const db = client.db(process.env.DB_NAME);
         const usersCollection = db.collection('users');
@@ -505,8 +511,8 @@ async function run() {
                         },
                     ],
                     mode: "payment",
-                    success_url: `${process.env.SITE_DOMAIN}/payment-success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
-                    cancel_url: `${process.env.SITE_DOMAIN}/my-order`,
+                    success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
+                    cancel_url: `${process.env.SITE_DOMAIN}/dashboard/my-order`,
                     metadata: {
                         orderId,
                         userEmail
